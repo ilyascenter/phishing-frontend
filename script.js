@@ -4,11 +4,6 @@ async function checkURL() {
     const descEl = document.getElementById("description");
     const riskEl = document.getElementById("risk");
 
-    if (!url) {
-        resultEl.innerText = "⚠️ URL tidak boleh kosong";
-        return;
-    }
-
     resultEl.innerText = "🔍 Checking...";
     descEl.innerText = "";
     riskEl.innerText = "";
@@ -24,38 +19,41 @@ async function checkURL() {
 
         const data = await res.json();
 
-        const prediction = data.prediction;
-        const confidence = data.confidence;
+        resultEl.innerText = `${data.prediction} (${data.confidence}%)`;
 
-        resultEl.innerText = `Result: ${prediction} (${confidence}%)`;
-
-        // 🔴 PHISHING
-        if (prediction === "Phishing") {
+        // COLOR
+        if (data.prediction === "Phishing") {
             resultEl.style.color = "red";
-
-            descEl.innerText =
-                "⚠️ URL ini terindikasi berbahaya. Disarankan untuk tidak mengakses atau memasukkan data pribadi.";
-
-            if (confidence > 80) {
-                riskEl.innerText = "Risk Level: HIGH";
-            } else if (confidence > 60) {
-                riskEl.innerText = "Risk Level: MEDIUM";
-            } else {
-                riskEl.innerText = "Risk Level: LOW";
-            }
-
-        } 
-        // 🟢 LEGIT
-        else {
+        } else if (data.prediction === "Suspicious") {
+            resultEl.style.color = "orange";
+        } else {
             resultEl.style.color = "green";
+        }
 
-            descEl.innerText =
-                "✅ URL ini terlihat aman berdasarkan analisis. Namun tetap berhati-hati saat memasukkan data.";
+        // DESCRIPTION
+        if (data.prediction === "Phishing") {
+            descEl.innerText = "⚠️ URL ini berbahaya. Jangan masukkan data pribadi.";
+        } else if (data.prediction === "Suspicious") {
+            descEl.innerText = "⚠️ URL mencurigakan, harap berhati-hati.";
+        } else {
+            descEl.innerText = "✅ URL terlihat aman.";
+        }
 
-            riskEl.innerText = "Risk Level: LOW";
+        // RISK LEVEL
+        if (data.confidence > 70) {
+            riskEl.innerText = "Risk: HIGH";
+        } else if (data.confidence > 40) {
+            riskEl.innerText = "Risk: MEDIUM";
+        } else {
+            riskEl.innerText = "Risk: LOW";
+        }
+
+        // REASONS
+        if (data.reasons && data.reasons.length > 0) {
+            descEl.innerText += "\n\nAlasan:\n- " + data.reasons.join("\n- ");
         }
 
     } catch (err) {
-        resultEl.innerText = "❌ Tidak bisa menghubungi server";
+        resultEl.innerText = "❌ Error koneksi ke server";
     }
 }
