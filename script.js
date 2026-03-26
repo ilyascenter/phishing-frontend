@@ -1,68 +1,61 @@
 async function checkURL() {
-    const inputEl = document.getElementById("urlInput");
+    const url = document.getElementById("urlInput").value.trim();
     const resultEl = document.getElementById("result");
+    const descEl = document.getElementById("description");
+    const riskEl = document.getElementById("risk");
 
-    const url = inputEl.value.trim();
-
-    // VALIDASI INPUT
     if (!url) {
         resultEl.innerText = "⚠️ URL tidak boleh kosong";
-        resultEl.style.color = "orange";
         return;
     }
 
-    // VALIDASI FORMAT SEDERHANA
-    if (!url.startsWith("http://") && !url.startsWith("https://")) {
-        resultEl.innerText = "⚠️ URL harus diawali http:// atau https://";
-        resultEl.style.color = "orange";
-        return;
-    }
-
-    // LOADING STATE
     resultEl.innerText = "🔍 Checking...";
-    resultEl.style.color = "black";
+    descEl.innerText = "";
+    riskEl.innerText = "";
 
     try {
-        const response = await fetch("/api/predict", {
+        const res = await fetch("/api/predict", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ url: url })
+            body: JSON.stringify({ url })
         });
 
-        // HANDLE HTTP ERROR
-        if (!response.ok) {
-            throw new Error("Server error");
-        }
+        const data = await res.json();
 
-        const data = await response.json();
-
-        // HANDLE RESPONSE ERROR DARI BACKEND
-        if (data.error) {
-            resultEl.innerText = "❌ Error: " + data.error;
-            resultEl.style.color = "red";
-            return;
-        }
-
-        // TAMPILKAN HASIL
         const prediction = data.prediction;
         const confidence = data.confidence;
 
-        resultEl.innerText =
-            `Result: ${prediction} (${confidence}%)`;
+        resultEl.innerText = `Result: ${prediction} (${confidence}%)`;
 
-        // WARNA BERDASARKAN HASIL
+        // 🔴 PHISHING
         if (prediction === "Phishing") {
             resultEl.style.color = "red";
-        } else {
+
+            descEl.innerText =
+                "⚠️ URL ini terindikasi berbahaya. Disarankan untuk tidak mengakses atau memasukkan data pribadi.";
+
+            if (confidence > 80) {
+                riskEl.innerText = "Risk Level: HIGH";
+            } else if (confidence > 60) {
+                riskEl.innerText = "Risk Level: MEDIUM";
+            } else {
+                riskEl.innerText = "Risk Level: LOW";
+            }
+
+        } 
+        // 🟢 LEGIT
+        else {
             resultEl.style.color = "green";
+
+            descEl.innerText =
+                "✅ URL ini terlihat aman berdasarkan analisis. Namun tetap berhati-hati saat memasukkan data.";
+
+            riskEl.innerText = "Risk Level: LOW";
         }
 
-    } catch (error) {
-        console.error(error);
-
+    } catch (err) {
         resultEl.innerText = "❌ Tidak bisa menghubungi server";
-        resultEl.style.color = "red";
     }
 }
